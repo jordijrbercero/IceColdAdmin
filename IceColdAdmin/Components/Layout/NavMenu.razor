@@ -1,0 +1,118 @@
+﻿@inject NavigationManager NavigationManager
+
+<div class="sidebar-custom d-flex flex-column">
+
+    <div class="brand-area py-4 text-center mt-2">
+        <img src="logo_barberia.png" alt="Ice Cold Logo" style="max-width: 120px;" class="mb-3 drop-shadow-logo" />
+
+        <h3 class="fw-bold m-0" style="letter-spacing: 2px;">
+            <span class="text-white">ICE</span><span class="text-info">COLD</span>
+        </h3>
+        <span class="badge bg-dark border border-secondary mt-2 text-secondary px-3 py-1" style="font-size: 0.65rem; letter-spacing: 2px;">
+            ADMIN PANEL
+        </span>
+    </div>
+
+    <nav class="flex-column mt-4 w-100">
+        <div class="nav-item px-3 mb-2">
+            <NavLink class="nav-link custom-link" href="" Match="NavLinkMatch.All">
+                <i class="bi bi-grid-1x2-fill me-3 fs-5"></i>
+                <span class="fw-bold">Panel General</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3 mb-2">
+            <NavLink class="nav-link custom-link" href="calendario">
+                <i class="bi bi-calendar-month-fill me-3 fs-5"></i>
+                <span class="fw-bold">Calendario</span>
+            </NavLink>
+        </div>
+    </nav>
+
+    <div class="mt-auto px-3 pb-4">
+        <hr class="border-secondary opacity-25 mb-3">
+        <div class="d-flex align-items-center px-3 py-2 rounded profile-area">
+            <i class="bi bi-person-circle fs-3 text-secondary me-3"></i>
+            <div class="small lh-1">
+                <div class="text-white fw-bold mb-1">Administrador</div>
+                <div class="d-flex align-items-center">
+                    <div class="bg-success rounded-circle me-2" style="width: 8px; height: 8px;"></div>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">En línea</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    ::deep .sidebar {
+        background-image: none !important;
+        background-color: #0A0F1D !important;
+    }
+
+    .sidebar-custom {
+        height: 100vh;
+        background-color: #0A0F1D;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    
+    .drop-shadow-logo {
+        filter: drop-shadow(0 0 10px rgba(41, 182, 246, 0.3));
+        transition: transform 0.3s ease;
+    }
+
+        .drop-shadow-logo:hover {
+            transform: scale(1.05);
+        }
+
+    .custom-link {
+        color: #64748b;
+        border-radius: 12px;
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+    }
+
+        .custom-link i {
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+
+        .custom-link:hover {
+            background-color: rgba(41, 182, 246, 0.05);
+            color: #fff;
+            transform: translateX(4px);
+        }
+
+            .custom-link:hover i {
+                color: #29B6F6;
+                transform: scale(1.1);
+            }
+
+   
+    .nav-item a.active {
+        
+        background: rgba(41, 182, 246, 0.2) !important;
+        color: #fff !important;
+        border-left: 4px solid #29B6F6;
+        border-radius: 8px; 
+        margin: 0 10px; 
+    }
+
+        
+        .nav-item a.active i {
+            color: #29B6F6 !important;
+        }
+
+    .profile-area {
+        transition: 0.2s ease;
+        cursor: pointer;
+    }
+
+        .profile-area:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+</style>

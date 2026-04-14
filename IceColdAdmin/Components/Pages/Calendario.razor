@@ -1,0 +1,233 @@
+﻿@page "/calendario"
+@using MongoDB.Driver
+@using System.Globalization
+@using IceColdAdmin.Models
+@inject NavigationManager NavManager
+@rendermode InteractiveServer
+
+<PageTitle>Calendario Premium - Ice Cold</PageTitle>
+
+<div class="container-fluid py-4 px-lg-5" style="background: linear-gradient(135deg, #0B1120 0%, #0A0F1D 100%); height: 100vh; overflow: hidden;">
+
+    <div class="glass-header d-flex justify-content-between align-items-center mb-5 p-4">
+        <button class="btn btn-ice rounded-pill px-4" @onclick="MesAnterior">
+            <i class="bi bi-chevron-left me-2"></i> Anterior
+        </button>
+        <h1 class="text-capitalize text-white m-0 fw-bold" style="letter-spacing: 1px;">
+            @ObtenerNombreMes() <span class="text-info">@fechaActual.Year</span>
+        </h1>
+        <button class="btn btn-ice rounded-pill px-4" @onclick="MesSiguiente">
+            Siguiente <i class="bi bi-chevron-right ms-2"></i>
+        </button>
+    </div>
+
+    <div class="row text-center fw-bold mb-3 text-uppercase" style="font-size: 0.85rem; letter-spacing: 2px;">
+        <div class="col text-secondary">Lun</div>
+        <div class="col text-secondary">Mar</div>
+        <div class="col text-secondary">Mié</div>
+        <div class="col text-secondary">Jue</div>
+        <div class="col text-secondary">Vie</div>
+        <div class="col text-info">Sáb</div>
+        <div class="col text-danger">Dom</div>
+    </div>
+
+    @if (cargando)
+    {
+        <div class="d-flex justify-content-center align-items-center" style="height: 40vh;">
+            <div class="spinner-border text-info shadow-glow" style="width: 3rem; height: 3rem;" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-7 g-3">
+            @for (int i = 0; i < offsetDias; i++)
+            {
+                <div class="col"><div class="day-cell empty-cell"></div></div>
+            }
+
+            @for (int dia = 1; dia <= diasEnMes; dia++)
+            {
+                int diaActual = dia;
+                DateTime fechaIteracion = new DateTime(fechaActual.Year, fechaActual.Month, diaActual);
+                bool esPasado = fechaIteracion < DateTime.Today;
+                bool esHoy = fechaIteracion == DateTime.Today;
+
+                string fechaStr = $"{diaActual:D2}/{fechaActual.Month:D2}/{fechaActual.Year}";
+                var reservasDelDia = reservasMes.Where(r => r.Dia == fechaStr).ToList();
+
+                <div class="col" @onclick="() => { if(!esPasado) IrAlDetalle(diaActual, fechaActual.Month, fechaActual.Year); }">
+                    <div class="day-cell @(esPasado ? "past-day" : "active-day") @(esHoy ? "today-glow" : "")">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="day-number @(esHoy ? "text-info" : (esPasado ? "text-secondary" : "text-white"))">
+                                @diaActual
+                            </span>
+                            @if (esHoy)
+                            {
+                                <span class="badge bg-info text-dark rounded-pill" style="font-size:0.6rem;">HOY</span>
+                            }
+                        </div>
+
+                        <div class="mt-auto">
+                            @if (reservasDelDia.Count > 0)
+                            {
+                                <div class="badge-container mb-2">
+                                    <span class="badge @(esPasado ? "bg-dark text-secondary border border-secondary" : "bg-info text-dark") w-100 py-1 shadow-sm">
+                                        @reservasDelDia.Count citas
+                                    </span>
+                                </div>
+                                <div class="appointments-list">
+                                    @foreach (var r in reservasDelDia.Take(2))
+                                    {
+                                        <div class="appt-item text-truncate">
+                                            <span class="appt-time">@r.Hora</span> @r.ClienteNombre
+                                        </div>
+                                    }
+                                    @if (reservasDelDia.Count > 2)
+                                    {
+                                        <div class="appt-more">+@(reservasDelDia.Count - 2) más</div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    
+    .row-cols-7 > * {
+        flex: 0 0 auto;
+        width: 14.2857%;
+    }
+
+    
+    .glass-header {
+        background: rgba(30, 41, 59, 0.4);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-ice {
+        background: rgba(41, 182, 246, 0.1);
+        color: #29B6F6;
+        border: 1px solid rgba(41, 182, 246, 0.3);
+        transition: all 0.3s ease;
+    }
+
+        .btn-ice:hover {
+            background: #29B6F6;
+            color: #000;
+            box-shadow: 0 0 15px rgba(41, 182, 246, 0.4);
+        }
+
+    
+    .day-cell {
+        height: 120px;
+        border-radius: 16px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .empty-cell {
+        background: rgba(15, 23, 42, 0.2);
+        border: 1px dashed rgba(255,255,255,0.05);
+    }
+
+    .past-day {
+        background: rgba(30, 41, 59, 0.3);
+        border: 1px solid rgba(255,255,255,0.02);
+        cursor: not-allowed;
+    }
+
+    .active-day {
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        cursor: pointer;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+        .active-day:hover {
+            transform: translateY(-5px) scale(1.02);
+            background: rgba(41, 182, 246, 0.05);
+            border-color: rgba(41, 182, 246, 0.5);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+        }
+
+    .today-glow {
+        box-shadow: inset 0 0 0 2px #29B6F6, 0 0 20px rgba(41, 182, 246, 0.2);
+        background: rgba(41, 182, 246, 0.05);
+    }
+
+    
+    .day-number {
+        font-size: 1.2rem;
+        font-weight: 800;
+    }
+
+    .appt-item {
+        font-size: 0.75rem;
+        color: #cbd5e1;
+        margin-bottom: 2px;
+    }
+
+    .appt-time {
+        font-weight: bold;
+        color: #29B6F6;
+    }
+
+    .appt-more {
+        font-size: 0.7rem;
+        color: #64748b;
+        font-style: italic;
+        margin-top: 4px;
+    }
+
+    .shadow-glow {
+        filter: drop-shadow(0 0 8px rgba(41,182,246,0.8));
+    }
+</style>
+
+@code {
+    
+    private DateTime fechaActual = DateTime.Today;
+    private int diasEnMes;
+    private int offsetDias;
+    private bool cargando = true;
+    private List<ReservaModel> reservasMes = new List<ReservaModel>();
+    string conexionMongo = "mongodb://jordijrbercero_db_user:L3omessi10$@ac-ogywvuk-shard-00-00.snxrhd7.mongodb.net:27017,ac-ogywvuk-shard-00-01.snxrhd7.mongodb.net:27017,ac-ogywvuk-shard-00-02.snxrhd7.mongodb.net:27017/?ssl=true&replicaSet=atlas-129cbo-shard-0&authSource=admin&appName=IceColdDB";
+
+    protected override async Task OnInitializedAsync() { await CargarDatosDelMes(); }
+    private async Task CargarDatosDelMes()
+    {
+        cargando = true;
+        diasEnMes = DateTime.DaysInMonth(fechaActual.Year, fechaActual.Month);
+        DateTime primerDia = new DateTime(fechaActual.Year, fechaActual.Month, 1);
+        offsetDias = (int)primerDia.DayOfWeek - 1;
+        if (offsetDias < 0) offsetDias = 6;
+        try
+        {
+            var clienteMongo = new MongoClient(conexionMongo);
+            var coleccionReservas = clienteMongo.GetDatabase("IceColdDB").GetCollection<ReservaModel>("Reservas");
+            string mesAñoFiltro = $"{fechaActual.Month:D2}/{fechaActual.Year}";
+            var filtro = Builders<ReservaModel>.Filter.Regex(r => r.Dia, new MongoDB.Bson.BsonRegularExpression(mesAñoFiltro));
+            reservasMes = await coleccionReservas.Find(filtro).ToListAsync();
+        }
+        catch { }
+        cargando = false;
+    }
+    private string ObtenerNombreMes() => fechaActual.ToString("MMMM", new CultureInfo("es-ES"));
+    private async Task MesAnterior() { fechaActual = fechaActual.AddMonths(-1); await CargarDatosDelMes(); }
+    private async Task MesSiguiente() { fechaActual = fechaActual.AddMonths(1); await CargarDatosDelMes(); }
+    private void IrAlDetalle(int dia, int mes, int anio) { NavManager.NavigateTo($"/dia/{anio}-{mes:D2}-{dia:D2}"); }
+}

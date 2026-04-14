@@ -1,0 +1,212 @@
+﻿@page "/dia/{FechaRuta}"
+@using MongoDB.Driver
+@using IceColdAdmin.Models
+@using System.Timers
+@inject NavigationManager NavManager
+@implements IDisposable
+@rendermode InteractiveServer
+
+<PageTitle>Detalle del Día - Ice Cold</PageTitle>
+
+<div class="container-fluid py-4 px-lg-5" style="background: linear-gradient(135deg, #0B1120 0%, #0A0F1D 100%); min-height: 100vh;">
+
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <button class="btn btn-ice rounded-pill px-4" @onclick="Volver">
+            <i class="bi bi-arrow-left me-2"></i> Volver
+        </button>
+
+        <div class="live-indicator rounded-pill px-3 py-1 bg-dark border border-success">
+            <div class="pulse-dot bg-success d-inline-block rounded-circle me-2" style="width: 8px; height: 8px;"></div>
+            <span class="text-success fw-bold" style="letter-spacing: 1px; font-size: 0.85rem;">SINC. EN VIVO</span>
+        </div>
+    </div>
+
+    <div class="glass-panel p-5">
+        <h2 class="text-white mb-5 fw-bold" style="letter-spacing: -0.5px;">
+            Citas programadas para el <span class="text-info border-bottom border-info border-2 pb-1">@fechaFormateada</span>
+        </h2>
+
+        @if (cargando)
+        {
+            <div class="text-center py-5"><div class="spinner-border text-info shadow-glow" style="width: 3rem; height: 3rem;"></div></div>
+        }
+        else if (reservas.Count == 0)
+        {
+            <div class="empty-state text-center py-5 rounded-4 border border-secondary" style="background: rgba(30, 41, 59, 0.3);">
+                <i class="bi bi-calendar-x text-secondary" style="font-size: 4rem;"></i>
+                <h4 class="text-secondary mt-3">Día libre</h4>
+                <p class="text-muted">No hay citas registradas para este día.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive" style="overflow: visible;">
+                <table class="table table-borderless custom-table align-middle">
+                    <thead>
+                        <tr class="text-uppercase text-secondary" style="font-size: 0.8rem; letter-spacing: 1px;">
+                            <th class="ps-4 pb-3">Hora</th>
+                            <th class="pb-3">Cliente</th>
+                            <th class="pb-3">Servicio</th>
+                            <th class="pb-3">Barbero</th>
+                            <th class="pb-3">Precio</th>
+                            <th class="pe-4 pb-3 text-end">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in reservas)
+                        {
+                            <tr class="floating-row">
+                                <td class="ps-4 py-3"><span class="badge bg-info text-dark fs-6 rounded-pill px-3 py-2 shadow-glow">@r.Hora</span></td>
+                                <td class="py-3">
+                                    <div class="fw-bold text-white fs-5">@r.ClienteNombre</div>
+                                    <div class="text-muted small"><i class="bi bi-envelope me-1"></i>@r.ClienteEmail</div>
+                                </td>
+                                <td class="py-3 text-light">@r.Servicio</td>
+                                <td class="py-3 text-light"><i class="bi bi-scissors me-2 text-secondary"></i>@r.Barbero</td>
+                                <td class="py-3 fw-bold text-success fs-5">@r.Precio</td>
+                                <td class="pe-4 py-3 text-end">
+                                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold delete-btn" @onclick="() => CancelarCita(r.Id)">
+                                        <i class="bi bi-x-lg me-1"></i> Cancelar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    
+    .glass-panel {
+        background: rgba(30, 41, 59, 0.4);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 24px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+    }
+
+    
+    .btn-ice {
+        background: rgba(41, 182, 246, 0.1);
+        color: #29B6F6;
+        border: 1px solid rgba(41, 182, 246, 0.3);
+        transition: all 0.3s ease;
+    }
+
+        .btn-ice:hover {
+            background: #29B6F6;
+            color: #000;
+            box-shadow: 0 0 15px rgba(41, 182, 246, 0.4);
+            transform: translateX(-3px);
+        }
+
+    
+    .pulse-dot {
+        animation: pulse 1.5s infinite;
+    }
+    @@keyframes pulse {
+        0%
+
+    {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(25,135,84,0.7);
+    }
+
+    70% {
+        opacity: 0.5;
+        transform: scale(1.2);
+        box-shadow: 0 0 0 10px rgba(25,135,84,0);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(25,135,84,0);
+    }
+
+    }
+
+    .custom-table {
+        border-collapse: separate;
+        border-spacing: 0 12px;
+    }
+
+    .floating-row {
+        background: rgba(15, 23, 42, 0.6);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+        .floating-row:hover {
+            background: rgba(30, 41, 59, 0.9);
+            transform: scale(1.01) translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+        .floating-row td:first-child {
+            border-top-left-radius: 16px;
+            border-bottom-left-radius: 16px;
+            border-left: 3px solid transparent;
+            transition: 0.3s;
+        }
+
+        .floating-row td:last-child {
+            border-top-right-radius: 16px;
+            border-bottom-right-radius: 16px;
+        }
+
+        .floating-row:hover td:first-child {
+            border-left-color: #29B6F6;
+        }
+
+    .delete-btn {
+        transition: 0.2s;
+    }
+
+        .delete-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(220,53,69,0.5);
+        }
+
+    .shadow-glow {
+        filter: drop-shadow(0 0 8px rgba(41,182,246,0.6));
+    }
+</style>
+
+@code {
+    [Parameter] public string FechaRuta { get; set; }
+    private List<ReservaModel> reservas = new();
+    private string fechaFormateada = "";
+    private bool cargando = true;
+    private Timer temporizador;
+
+    string conexionMongo = "mongodb://jordijrbercero_db_user:L3omessi10$@ac-ogywvuk-shard-00-00.snxrhd7.mongodb.net:27017,ac-ogywvuk-shard-00-01.snxrhd7.mongodb.net:27017,ac-ogywvuk-shard-00-02.snxrhd7.mongodb.net:27017/?ssl=true&replicaSet=atlas-129cbo-shard-0&authSource=admin&appName=IceColdDB";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var partes = FechaRuta.Split('-');
+        if (partes.Length == 3) { fechaFormateada = $"{partes[2]}/{partes[1]}/{partes[0]}"; await CargarReservasDelDia(fechaFormateada); }
+        cargando = false;
+        temporizador = new Timer(10000);
+        temporizador.Elapsed += RecargarDatosOculto;
+        temporizador.AutoReset = true;
+        temporizador.Start();
+    }
+    private async Task CargarReservasDelDia(string fechaMongo)
+    {
+        try
+        {
+            var clienteMongo = new MongoClient(conexionMongo);
+            var coleccion = clienteMongo.GetDatabase("IceColdDB").GetCollection<ReservaModel>("Reservas");
+            reservas = await coleccion.Find(r => r.Dia == fechaMongo).SortBy(r => r.Hora).ToListAsync();
+        }
+        catch { }
+    }
+    private async void RecargarDatosOculto(object sender, ElapsedEventArgs e) { await InvokeAsync(async () => { await CargarReservasDelDia(fechaFormateada); StateHasChanged(); }); }
+    private async Task CancelarCita(string idCita) { try { var coleccion = new MongoClient(conexionMongo).GetDatabase("IceColdDB").GetCollection<ReservaModel>("Reservas"); await coleccion.DeleteOneAsync(r => r.Id == idCita); await CargarReservasDelDia(fechaFormateada); } catch { } }
+    private void Volver() => NavManager.NavigateTo("/calendario");
+    public void Dispose() { temporizador?.Dispose(); }
+}

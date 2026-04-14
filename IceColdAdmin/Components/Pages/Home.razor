@@ -1,0 +1,141 @@
+﻿@page "/"
+@using MongoDB.Driver
+@using IceColdAdmin.Models
+@using System.Timers
+@implements IDisposable
+@rendermode InteractiveServer
+
+<PageTitle>Inicio - Ice Cold</PageTitle>
+
+<div class="container mt-5 pt-4" style="max-width: 1100px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-white fw-bold mb-1">📅 Citas para hoy (@DateTime.Today.ToString("dd/MM/yyyy"))</h2>
+            <p class="text-info mb-0">
+                Panel de administración en tiempo real
+                <span class="spinner-grow spinner-grow-sm text-success ms-2" role="status" aria-hidden="true" style="animation-duration: 2s; width: 0.7rem; height: 0.7rem;"></span>
+            </p>
+        </div>
+    </div>
+
+    @if (cargando)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-info" role="status"></div>
+            <p class="text-secondary mt-2">Cargando base de datos...</p>
+        </div>
+    }
+    else if (reservasDeHoy.Count == 0)
+    {
+        <div class="card bg-dark border-secondary p-5 mt-4 text-center shadow-lg" style="border-radius: 16px;">
+            <div class="d-flex flex-column align-items-center justify-content-center">
+                <h4 class="text-white mb-0 fw-light">No hay reservas programadas para el día de hoy.</h4>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card bg-dark border-secondary shadow-lg mt-4" style="border-radius: 16px; overflow: hidden;">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped table-hover mb-0 align-middle">
+                        <thead class="table-active">
+                            <tr>
+                                <th class="ps-4 py-3">Hora</th>
+                                <th class="py-3">Cliente</th>
+                                <th class="py-3">Servicio</th>
+                                <th class="py-3">Barbero</th>
+                                <th class="py-3">Precio</th>
+                                <th class="pe-4 py-3">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var reserva in reservasDeHoy)
+                            {
+                                <tr>
+                                    <td class="ps-4 py-3 fw-bold text-info">@reserva.Hora</td>
+                                    <td class="py-3">
+                                        <span class="text-white">@reserva.ClienteNombre</span><br />
+                                        <small class="text-muted">@reserva.ClienteEmail</small>
+                                    </td>
+                                    <td class="py-3 text-light">@reserva.Servicio</td>
+                                    <td class="py-3 text-light">@reserva.Barbero</td>
+                                    <td class="py-3 text-success fw-bold">@reserva.Precio</td>
+                                    <td class="pe-4 py-3">
+                                        @if (reserva.email_confirmacion_enviado)
+                                        {
+                                            <span class="badge bg-success bg-opacity-25 text-success border border-success">Email Enviado</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning">Pendiente</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ReservaModel> reservasDeHoy = new();
+    private bool cargando = true;
+    private Timer temporizador;
+
+    string conexionMongo = "mongodb://jordijrbercero_db_user:L3omessi10$@ac-ogywvuk-shard-00-00.snxrhd7.mongodb.net:27017,ac-ogywvuk-shard-00-01.snxrhd7.mongodb.net:27017,ac-ogywvuk-shard-00-02.snxrhd7.mongodb.net:27017/?ssl=true&replicaSet=atlas-129cbo-shard-0&authSource=admin&appName=IceColdDB";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarReservasDeHoy();
+
+        temporizador = new Timer(10000);
+        temporizador.Elapsed += RecargarDatosOculto;
+        temporizador.AutoReset = true;
+        temporizador.Start();
+    }
+
+    private async Task CargarReservasDeHoy()
+    {
+        try
+        {
+            var clienteMongo = new MongoClient(conexionMongo);
+            var baseDeDatos = clienteMongo.GetDatabase("IceColdDB");
+            var coleccionReservas = baseDeDatos.GetCollection<ReservaModel>("Reservas");
+
+            string fechaHoy = DateTime.Today.ToString("dd/MM/yyyy");
+            var filtro = Builders<ReservaModel>.Filter.Eq(r => r.Dia, fechaHoy);
+
+            var opciones = new FindOptions<ReservaModel, ReservaModel>
+                {
+                    Sort = Builders<ReservaModel>.Sort.Ascending(r => r.Hora)
+                };
+
+            var cursor = await coleccionReservas.FindAsync(filtro, opciones);
+            reservasDeHoy = await cursor.ToListAsync();
+        }
+        catch (Exception)
+        {
+            reservasDeHoy = new List<ReservaModel>();
+        }
+        cargando = false;
+    }
+
+    private async void RecargarDatosOculto(object sender, ElapsedEventArgs e)
+    {
+        await InvokeAsync(async () =>
+        {
+            await CargarReservasDeHoy();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        temporizador?.Dispose();
+    }
+}
